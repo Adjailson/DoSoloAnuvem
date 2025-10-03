@@ -1,0 +1,93 @@
+/*-----ADICIONAR AO BACKGROUND UMA FOTO DO GIRAGEEK, MUDAR AS CORES, FORMATOS E FONTE DESSA TELA-----*/
+
+body{
+    background-color: #c94e07;
+}
+
+.login {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 300px;
+    height: 350px;
+    padding: 20px;
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+}
+
+.email, .pass {
+    width: 100%;
+    margin-bottom: 5px;
+    text-align: center;
+}
+
+.inp-email, .inp-pass {
+    width: 90%;
+    height: 45px;
+    padding: 10px;
+    margin: 0 auto; 
+    display: block;
+    box-sizing: border-box;
+    border: 1px solid #ddd;
+    border-radius: 15px;
+}
+
+.btn-login {
+    margin-top: 10px;
+    padding: 10px 20px;
+    background-color: #ec671b;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+.btn-login:hover {
+    background-color: #ca5917;
+}
+
+.tela {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #c94e07;
+}
+
+/*Lembre de Mim e Esqueci a senha*/
+
+.options-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 90%;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    font-size: 0.9em;
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #555;
+}
+
+.remember-me input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.forgot-password-link {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.forgot-password-link:hover {
+    text-decoration: underline;
+}

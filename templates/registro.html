@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phenoglad - Registro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='registro.css') }}">
+</head>
+<body>
+
+    <div class='tela'>
+        <div class="login">
+            <h1>Registrar</h1>
+            <div class='email'>
+                <input type="text" placeholder="Nome" class="inp-email" name="nome" required>
+            </div>
+            <div class='email'>
+                <input type="email" placeholder="Email" class="inp-email" name="email" required>
+            </div>
+            <div class='pass'>
+                <input type="password" placeholder="Senha" class="inp-pass" name="senha" required>
+            </div>
+
+            <button class="btn-login" onclick="document.getElementById('registroForm').submit();">Registrar</button>
+        </div>
+    </div>
+
+    <form id="registroForm" action="{{ url_for('registro') }}" method="POST" style="display: none;">
+        <input type="text" name="nome" required>
+        <input type="email" name="email" required>
+        <input type="password" name="senha" required>
+    </form>
+    
+</body>
+</html>

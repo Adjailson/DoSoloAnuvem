@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phenoglad - Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='registro.css') }}">
+</head>
+<body>
+
+    <div class='tela'>
+        <div class="login">
+            <h1>Login</h1>
+            <form method="POST">
+                <div class='email'>
+                    <input type="email" name="email" placeholder="Email" class="inp-email" required>
+                </div>
+                <div class='pass'>
+                    <input type="password" name="senha" placeholder="Senha" class="inp-pass" required>
+                </div>
+                <button type="submit" class="btn-login">Entrar</button>
+            </form>
+            <div class="register-link">
+                <p>Ainda não tem uma conta? <a href="{{ url_for('registro') }}">Registrar</a></p>
+            </div>
+        </div>
+    </div>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+          {% for message in messages %}
+            <li style="color:red;">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+</body>
+</html>
