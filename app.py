@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///phenoglad.sqlite'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = 'your_secret_key'  # Needed for session management
+app.secret_key = 'secret_key'
 
 db = SQLAlchemy(app)
 
