@@ -1,0 +1,48 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    color: #fff;
+}
+
+body {
+    background: linear-gradient(rgba(0,0,0,0.36), rgba(0,0,0,0.36)), url("/static/R.jpg") center/cover no-repeat fixed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.container {
+    width: 100%;
+    max-width: 1000px;
+    margin: 40px auto;
+    text-align: center;
+    background: rgba(255,255,255,0.03);
+    border-radius: 12px;
+    padding: 36px;
+    box-shadow: 0 8px 36px rgba(0,0,0,0.55);
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(6px);
+}
+
+h1 { margin: 0 0 10px; font-size: 34px; color: #fff; }
+p { margin: 0 0 18px; color: rgba(255,255,255,0.9); }
+
+a {
+    display: inline-block;
+    margin: 6px 10px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: rgba(30,144,255,0.95);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    box-shadow: 0 8px 20px rgba(30,144,255,0.18);
+}
+
+@media (max-width: 600px) {
+    .container { padding: 20px; margin: 20px; }
+    h1 { font-size: 26px; }
+}
