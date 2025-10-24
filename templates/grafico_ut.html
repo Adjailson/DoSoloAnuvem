@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoramento de Girassóis</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../static/css/grafico.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Barra de Navegação -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">
+                 Monitoramento de Girassóis
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Card de Seleção de Datas -->
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"> Selecionar Período</h5>
+            </div>
+            <div class="card-body">
+                <form id="form-datas">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label for="data-inicio" class="form-label fw-bold">Data Início</label>
+                            <input type="date" class="form-control" id="data-inicio" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="data-fim" class="form-label fw-bold">Data Fim</label>
+                            <input type="date" class="form-control" id="data-fim" required>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary w-100">
+                                 Gerar Gráficos
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="text-center d-none">
+            <div class="spinner-border text-warning" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-2">Buscando dados da API...</p>
+        </div>
+
+        <!-- Mensagem de Erro -->
+        <div id="mensagem-erro" class="alert alert-danger d-none" role="alert"></div>
+
+        <!-- Container dos Gráficos -->
+        <div id="container-graficos" class="d-none">
+            <!-- Gráfico Combinado -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"> Temperatura e Umidade por Data</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="grafico-combinado"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Gráfico de Temperatura -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0"> Temperatura por Data</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="grafico-temperatura"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico de Umidade -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0"> Umidade por Data</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="grafico-umidade"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Variáveis globais para armazenar os gráficos
+        let graficoCombinado = null;
+        let graficoTemperatura = null;
+        let graficoUmidade = null;
+
+        // Configura datas padrão ao carregar a página
+        document.addEventListener('DOMContentLoaded', function() {
+            const hoje = new Date();
+            const umaSemanaAtras = new Date();
+            umaSemanaAtras.setDate(hoje.getDate() - 7);
+
+            // Formata as datas para YYYY-MM-DD
+            const formatarData = (data) => data.toISOString().split('T')[0];
+            
+            document.getElementById('data-inicio').value = formatarData(umaSemanaAtras);
+            document.getElementById('data-fim').value = formatarData(hoje);
+        });
+
+        // Manipula o envio do formulário
+        document.getElementById('form-datas').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const dataInicio = document.getElementById('data-inicio').value;
+            const dataFim = document.getElementById('data-fim').value;
+
+            // Validação básica no frontend
+            if (!dataInicio || !dataFim) {
+                mostrarErro('Por favor, selecione ambas as datas.');
+                return;
+            }
+
+            if (new Date(dataInicio) > new Date(dataFim)) {
+                mostrarErro('Data de início não pode ser posterior à data de fim.');
+                return;
+            }
+
+            await buscarDadosEGerarGraficos(dataInicio, dataFim);
+        });
+
+        /**
+         * Função principal que busca dados da API e gera os gráficos
+         */
+        async function buscarDadosEGerarGraficos(dataInicio, dataFim) {
+            // Mostra loading e esconde elementos anteriores
+            mostrarLoading(true);
+            esconderErro();
+            esconderGraficos();
+
+            try {
+                // Faz requisição para o endpoint do Flask
+                const response = await fetch('/buscar-dados', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        data_inicio: dataInicio,
+                        data_fim: dataFim
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.erro || 'Erro ao buscar dados');
+                }
+
+                if (!data.sucesso) {
+                    throw new Error('Resposta inesperada da API');
+                }
+
+                // Gera os gráficos com os dados recebidos
+                gerarGraficos(data.dados);
+                mostrarGraficos();
+
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarErro(error.message);
+            } finally {
+                mostrarLoading(false);
+            }
+        }
+
+        /**
+         * Gera os três gráficos de barras verticais com os dados processados
+         */
+        function gerarGraficos(dados) {
+            // Destroi gráficos anteriores se existirem
+            destruirGraficosAnteriores();
+
+            const labels = dados.datas.map(data => {
+                // Formata a data para exibição mais amigável
+                const [ano, mes, dia] = data.split('-');
+                return `${dia}/${mes}`;
+            });
+            
+            const temperaturas = dados.temperaturas;
+            const umidades = dados.umidades;
+
+            // Gráfico Combinado (Temperatura e Umidade)
+            const ctxCombinado = document.getElementById('grafico-combinado').getContext('2d');
+            graficoCombinado = new Chart(ctxCombinado, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Temperatura (°C)',
+                            data: temperaturas,
+                            backgroundColor: 'rgba(255, 99, 132, 0.8)',
+                            borderColor: 'rgb(255, 99, 132)',
+                            borderWidth: 2,
+                            yAxisID: 'y',
+                            order: 2
+                        },
+                        {
+                            label: 'Umidade (%)',
+                            data: umidades,
+                            backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                            borderColor: 'rgb(54, 162, 235)',
+                            borderWidth: 2,
+                            yAxisID: 'y1',
+                            type: 'bar',
+                            order: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Temperatura e Umidade por Data',
+                            font: {
+                                size: 16
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        if (context.dataset.label.includes('Temperatura')) {
+                                            label += context.parsed.y + '°C';
+                                        } else {
+                                            label += context.parsed.y + '%';
+                                        }
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Data (Dia/Mês)',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Temperatura (°C)',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            beginAtZero: false
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Umidade (%)',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico de Temperatura (apenas barras)
+            const ctxTemperatura = document.getElementById('grafico-temperatura').getContext('2d');
+            graficoTemperatura = new Chart(ctxTemperatura, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Temperatura Média (°C)',
+                        data: temperaturas,
+                        backgroundColor: temperaturas.map(temp => {
+                            // Gradiente de cor baseado na temperatura
+                            if (temp < 20) return 'rgba(54, 162, 235, 0.8)';    // Azul para frio
+                            if (temp < 30) return 'rgba(255, 205, 86, 0.8)';    // Amarelo para moderado
+                            return 'rgba(255, 99, 132, 0.8)';                   // Vermelho para quente
+                        }),
+                        borderColor: temperaturas.map(temp => {
+                            if (temp < 20) return 'rgb(54, 162, 235)';
+                            if (temp < 30) return 'rgb(255, 205, 86)';
+                            return 'rgb(255, 99, 132)';
+                        }),
+                        borderWidth: 2,
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Temperatura Média por Data',
+                            font: {
+                                size: 16
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Temperatura: ${context.parsed.y}°C`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Data (Dia/Mês)',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Temperatura (°C)',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '°C';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico de Umidade (apenas barras)
+            const ctxUmidade = document.getElementById('grafico-umidade').getContext('2d');
+            graficoUmidade = new Chart(ctxUmidade, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Umidade Média (%)',
+                        data: umidades,
+                        backgroundColor: umidades.map(umid => {
+                            // Gradiente de cor baseado na umidade
+                            if (umid < 40) return 'rgba(255, 99, 132, 0.8)';    // Vermelho para seco
+                            if (umid < 70) return 'rgba(255, 205, 86, 0.8)';    // Amarelo para moderado
+                            return 'rgba(75, 192, 192, 0.8)';                   // Verde para úmido
+                        }),
+                        borderColor: umidades.map(umid => {
+                            if (umid < 40) return 'rgb(255, 99, 132)';
+                            if (umid < 70) return 'rgb(255, 205, 86)';
+                            return 'rgb(75, 192, 192)';
+                        }),
+                        borderWidth: 2,
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Umidade Média por Data',
+                            font: {
+                                size: 16
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Umidade: ${context.parsed.y}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Data (Dia/Mês)',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Umidade (%)',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        /**
+         * Destrói gráficos anteriores para evitar memory leaks
+         */
+        function destruirGraficosAnteriores() {
+            if (graficoCombinado) {
+                graficoCombinado.destroy();
+                graficoCombinado = null;
+            }
+            if (graficoTemperatura) {
+                graficoTemperatura.destroy();
+                graficoTemperatura = null;
+            }
+            if (graficoUmidade) {
+                graficoUmidade.destroy();
+                graficoUmidade = null;
+            }
+        }
+
+        // Funções auxiliares para manipulação da UI
+        function mostrarLoading(mostrar) {
+            document.getElementById('loading').classList.toggle('d-none', !mostrar);
+        }
+
+        function mostrarErro(mensagem) {
+            const elementoErro = document.getElementById('mensagem-erro');
+            elementoErro.textContent = mensagem;
+            elementoErro.classList.remove('d-none');
+        }
+
+        function esconderErro() {
+            document.getElementById('mensagem-erro').classList.add('d-none');
+        }
+
+        function mostrarGraficos() {
+            document.getElementById('container-graficos').classList.remove('d-none');
+        }
+
+        function esconderGraficos() {
+            document.getElementById('container-graficos').classList.add('d-none');
+        }
+    </script>
+</body>
+</html>
