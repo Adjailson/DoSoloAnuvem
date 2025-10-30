@@ -9,7 +9,7 @@ API_BASE_URL = "https://apigirassol.roboticasuassuna.com.br/apiClima"
 
 def buscar_dados_api(data_inicio, data_fim):
     endpoint = f"{API_BASE_URL}/getListarDados/{data_inicio}D{data_fim}"
-    
+     
     response = requests.get(endpoint, timeout=30)
     
     if response.status_code == 200:
